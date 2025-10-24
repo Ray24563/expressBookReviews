@@ -10,20 +10,11 @@ app.use(express.json());
 
 app.use("/customer",session({secret:"fingerprint_customer",resave: true, saveUninitialized: true}))
 
-app.use("/customer/auth/*", function auth(req, res, next){
-  const token = req.headers.authorization?.split(" ")[1]; // Expecting "Bearer <token>"
-
-  if (!token) {
-    return res.status(401).json({ message: "Access denied. No token provided." });
+app.use("/customer/auth/*", function auth(req,res,next){
+  if (!req.session.username) {
+    return res.status(401).json({ message: "You must be logged in to post a review." });
   }
-
-  try {
-    const decoded = jwt.verify(token, "your_secret_key"); // verify token
-    req.user = decoded; // attach decoded info to request
-    next(); // proceed to next route
-  } catch (err) {
-    res.status(400).json({ message: "Invalid token." });
-  }
+  next();
 });
  
 const PORT =5000;
