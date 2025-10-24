@@ -1,8 +1,10 @@
 const express = require('express');
+const genl_users = express.Router();  // <-- this was missing
 let books = require("./booksdb.js");
 let isValid = require("./auth_users.js").isValid;
 let users = require("./auth_users.js").users;
 const public_users = express.Router();
+const axios = require('axios');
 
 
 public_users.post("/register", (req, res) => {
@@ -96,4 +98,59 @@ public_users.get('/review/:isbn', function (req, res) {
   }
 });
 
-module.exports.general = public_users;
+// Get book details based on ISBN using Promise
+genl_users.get('/axios/isbn/:isbn', (req, res) => {
+  const isbn = req.params.isbn;
+
+  // Wrap in a Promise
+  new Promise((resolve, reject) => {
+      const book = books[isbn];
+      if (book) resolve(book);
+      else reject("Book not found");
+  })
+  .then(book => res.json(book))
+  .catch(err => res.status(404).json({ message: "Error fetching book", error: err }));
+});
+
+// Get books based on author using Promise
+genl_users.get('/axios/author/:author', (req, res) => {
+  const author = req.params.author.toLowerCase();
+
+  new Promise((resolve, reject) => {
+      const booksByAuthor = [];
+
+      for (const key in books) {
+          if (books[key].author.toLowerCase() === author) {
+              booksByAuthor.push(books[key]);
+          }
+      }
+
+      if (booksByAuthor.length > 0) resolve(booksByAuthor);
+      else reject("No books found for this author");
+  })
+  .then(result => res.json(result))
+  .catch(err => res.status(404).json({ message: "Error fetching books", error: err }));
+});
+
+genl_users.get('/axios/title/:title', (req, res) => {
+  const title = req.params.title.toLowerCase();
+
+  new Promise((resolve, reject) => {
+      const booksByTitle = [];
+
+      for (const key in books) {
+          if (books[key].title.toLowerCase() === title) {
+              booksByTitle.push(books[key]);
+          }
+      }
+
+      if (booksByTitle.length > 0) resolve(booksByTitle);
+      else reject("No books found with this title");
+  })
+  .then(result => res.json(result))
+  .catch(err => res.status(404).json({ message: "Error fetching books", error: err }));
+});
+
+module.exports.public_users = public_users;
+module.exports.genl_users = genl_users;
+
